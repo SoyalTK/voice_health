@@ -1,17 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Voice Healthcare AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <div class="container">
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">
+      <span id="theme-icon">🌙</span>
+      <span id="theme-text">Night Mode</span>
+    </button>
     <header>
-      <h1>🎤 Voice Healthcare Assistant</h1>
-      <p class="subtitle">Record patient voice notes or paste symptoms manually, then extract structured medical details instantly.</p>
+      <h1>Voice Healthcare AI</h1>
+      <p class="subtitle">Experience the future of clinical documentation with real-time multilingual transcription and
+        intelligent history analysis.</p>
     </header>
+
+    <!-- Elite Stats Ribbon -->
+    <div class="stats-ribbon" id="stats-ribbon" style="display: none;">
+      <div class="stat-card">
+        <span class="stat-label">Visits Today</span>
+        <span class="stat-value" id="stat-total">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total Patients</span>
+        <span class="stat-value" id="stat-patients">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Top Symptoms</span>
+        <span class="stat-value" id="stat-symptoms" style="font-size: 0.9rem;">-</span>
+      </div>
+    </div>
 
     <section class="actions">
       <div class="action-group">
@@ -26,11 +53,24 @@
     <section class="card patient-card">
       <h2>Patient & Language</h2>
       <div class="form-row">
-        <label for="patient-id">Patient ID</label>
+        <label>Patient Identity</label>
         <div class="input-group">
-          <input id="patient-id" placeholder="Enter or generate patient ID" />
-          <button id="generate-id-btn" onclick="generatePatientId()">Generate ID</button>
+          <input id="patient-id" placeholder="Patient ID (e.g. P-0001)" />
+          <div style="display: flex; gap: 8px;">
+            <button onclick="generateNewPatientId()">New Patient</button>
+            <button onclick="clearCurrentConsultation()"
+              style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);">New
+              Visit</button>
+          </div>
         </div>
+      </div>
+      <div class="form-row">
+        <label for="patient-name">Patient Name</label>
+        <input id="patient-name" placeholder="Enter patient name " />
+      </div>
+      <div class="form-row">
+        <label for="patient-phone">Phone</label>
+        <input id="patient-phone" placeholder="Enter phone (optional)" />
       </div>
       <div class="form-row">
         <label for="language-select">Speech language</label>
@@ -41,9 +81,7 @@
           <option value="mr">Marathi</option>
         </select>
       </div>
-      <div class="form-row">
-        <button type="button" class="load-history-btn" onclick="loadPatientHistory()">Recall patient visits</button>
-      </div>
+
     </section>
 
     <div id="status" class="status"></div>
@@ -59,28 +97,125 @@
       <p id="transcript" class="output-empty">No transcript yet.</p>
     </section>
 
-    <section class="card">
-      <h2>Extracted Data</h2>
-      <pre id="result">{ }</pre>
+    <section class="card prescription-card" id="prescription-container" style="display: none;">
+      <div class="prescription-header">
+        <h2>📝 Draft Prescription</h2>
+        <span class="status-badge" id="prescription-status">Draft</span>
+      </div>
+
+      <div class="missing-fields-alert" id="missing-fields-alert" style="display: none;">
+        ⚠️ <strong>Action Required:</strong> The patient did not mention: <span id="missing-fields-list"></span>. Please
+        fill these in.
+      </div>
+
+      <div id="presc-warning" class="warning-text" style="margin-bottom: 15px;"></div>
+
+      <form id="prescription-form">
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label>Symptoms</label>
+            <input type="text" id="presc-symptoms" placeholder="e.g. fever, headache" />
+          </div>
+          <div class="form-group">
+            <label>Duration</label>
+            <input type="text" id="presc-duration" placeholder="e.g. 3 days" />
+          </div>
+        </div>
+
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label>Blood Pressure (BP)</label>
+            <input type="text" id="presc-bp" placeholder="e.g. 120/80" />
+          </div>
+          <div class="form-group">
+            <label>Temperature</label>
+            <input type="text" id="presc-temperature" placeholder="e.g. 98.6 F" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Diagnosis</label>
+          <input type="text" id="presc-diagnosis" placeholder="Diagnosis" />
+        </div>
+
+        <div class="form-group">
+          <label>Severity</label>
+          <select id="presc-severity">
+            <option value="">Select</option>
+            <option value="mild">Mild</option>
+            <option value="moderate">Moderate</option>
+            <option value="severe">Severe</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Medicines</label>
+          <input type="text" id="presc-medicines" placeholder="Comma separated medicines" />
+        </div>
+
+        <div class="form-group">
+          <label>Prescription Notes</label>
+          <textarea id="presc-notes" rows="3"
+            placeholder="Additional doctor notes or prescription instructions"></textarea>
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="btn-primary" onclick="savePrescription()">Approve & Save Prescription</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card history-card" id="patient-history-section">
+      <div class="history-header">
+        <h2>📋 Patient visit history</h2>
+      </div>
+      <div id="visit-status" class="status"></div>
+
+      <!-- New Search In History Section -->
+      <div class="history-search-box">
+        <label
+          style="display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">Find
+          Records</label>
+        <div class="chat-input-group">
+          <input id="patient-search" placeholder="Search by name or P-ID..." />
+          <button type="button" class="btn-chat-send" onclick="searchPatientsByName()">
+            Search
+          </button>
+        </div>
+        <div style="margin-top: 12px;">
+          <button type="button" class="clear-all-btn"
+            style="width: 100%; border: 1px solid var(--border); background: white; color: var(--text-muted); border-radius: var(--radius-md);"
+            onclick="loadRecentPatients()">
+            View Recent Patients
+          </button>
+        </div>
+      </div>
+
+      <!-- AI History Chat Widget -->
+      <div class="ai-chat-widget">
+        <label>🤖 AI History Assistant</label>
+        <div class="chat-input-group">
+          <input type="text" id="chat-query" placeholder="Ask about patient history (e.g. medications last month?)" />
+          <button id="chat-mic-btn" onclick="toggleChatMic()" title="Ask by voice">🎤</button>
+          <button onclick="askHistory()" class="btn-chat-send">Send</button>
+        </div>
+        <div id="chat-answer" class="chat-answer" style="display: none;"></div>
+      </div>
+
+      <ul id="visit-history" class="history-list"></ul>
     </section>
 
     <section class="card history-card">
       <div class="history-header">
-        <h2>Recent records</h2>
+        <h2>📑 Recent records</h2>
         <button onclick="clearAllHistory()" class="clear-all-btn">Clear All</button>
       </div>
       <ul id="history" class="history-list"></ul>
-    </section>
-
-    <section class="card history-card">
-      <div class="history-header">
-        <h2>Patient visit history</h2>
-      </div>
-      <div id="visit-status" class="status"></div>
-      <ul id="visit-history" class="history-list"></ul>
     </section>
   </div>
 
   <script src="script.js"></script>
 </body>
+
 </html>
