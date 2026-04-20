@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Healthcare AI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎤 Voice Healthcare Assistant</h1>
+      <p class="subtitle">Record patient voice notes or paste symptoms manually, then extract structured medical details instantly.</p>
+    </header>
+
+    <section class="actions">
+      <div class="action-group">
+        <button id="start-btn" onclick="startListening()">Start Speaking</button>
+        <button id="stop-btn" onclick="stopListening()">Stop Recording</button>
+      </div>
+      <div class="action-group">
+        <button onclick="analyzeManualText()">Analyze Manual Text</button>
+      </div>
+    </section>
+
+    <section class="card patient-card">
+      <h2>Patient & Language</h2>
+      <div class="form-row">
+        <label for="patient-id">Patient ID</label>
+        <div class="input-group">
+          <input id="patient-id" placeholder="Enter or generate patient ID" />
+          <button id="generate-id-btn" onclick="generatePatientId()">Generate ID</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="language-select">Speech language</label>
+        <select id="language-select">
+          <option value="auto">Auto-detect</option>
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+          <option value="mr">Marathi</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <button type="button" class="load-history-btn" onclick="loadPatientHistory()">Recall patient visits</button>
+      </div>
+    </section>
+
+    <div id="status" class="status"></div>
+    <div id="backend-url" class="backend-url"></div>
+
+    <section class="card">
+      <h2>Manual or voice notes</h2>
+      <textarea id="manual-text" placeholder="Type or paste symptom notes here..."></textarea>
+    </section>
+
+    <section class="card">
+      <h2>Transcript</h2>
+      <p id="transcript" class="output-empty">No transcript yet.</p>
+    </section>
+
+    <section class="card">
+      <h2>Extracted Data</h2>
+      <pre id="result">{ }</pre>
+    </section>
+
+    <section class="card history-card">
+      <div class="history-header">
+        <h2>Recent records</h2>
+        <button onclick="clearAllHistory()" class="clear-all-btn">Clear All</button>
+      </div>
+      <ul id="history" class="history-list"></ul>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
