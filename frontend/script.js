@@ -11,6 +11,8 @@ const backendUrlEl = document.getElementById("backend-url");
 const transcriptEl = document.getElementById("transcript");
 const resultEl = document.getElementById("result");
 const historyEl = document.getElementById("history");
+const visitHistoryEl = document.getElementById("visit-history");
+const visitStatusEl = document.getElementById("visit-status");
 const manualTextEl = document.getElementById("manual-text");
 const patientIdInput = document.getElementById("patient-id");
 const languageSelect = document.getElementById("language-select");
@@ -78,6 +80,59 @@ async function analyzeManualText() {
   }
   transcriptEl.innerText = text;
   await sendTextForAnalysis(text, "manual");
+}
+
+async function loadPatientHistory() {
+  const patientId = patientIdInput?.value?.trim();
+  if (!patientId) {
+    setStatus("Enter a Patient ID first to recall visits.", true);
+    return;
+  }
+
+  visitHistoryEl.innerHTML = "";
+  visitStatusEl.textContent = "Loading patient visit history...";
+  visitStatusEl.className = "status";
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/records/${encodeURIComponent(patientId)}`);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to fetch patient history.");
+    }
+
+    if (!data.length) {
+      visitHistoryEl.innerHTML = "<li class='empty'>No visits found for this patient ID.</li>";
+      visitStatusEl.textContent = "No visits found.";
+      return;
+    }
+
+    renderVisitHistory(data);
+    visitStatusEl.textContent = `${data.length} visit(s) found for ${patientId}.`;
+  } catch (error) {
+    visitStatusEl.textContent = `Failed to load patient history: ${error.message}`;
+    visitStatusEl.className = "status error";
+    visitHistoryEl.innerHTML = "";
+  }
+}
+
+function renderVisitHistory(records) {
+  visitHistoryEl.innerHTML = "";
+  records.forEach((record) => {
+    const item = document.createElement("li");
+    item.className = "history-item";
+    item.innerHTML = `
+      <div class="history-header">
+        <strong>${new Date(record.timestamp).toLocaleString()}</strong>
+      </div>
+      <p><em>Source:</em> ${record.source}</p>
+      <p><em>Language:</em> ${record.language}</p>
+      <p><em>Diagnosis:</em> ${record.diagnosis || "N/A"}</p>
+      <p><em>Prescription:</em> ${escapeHtml(record.prescription || "N/A")}</p>
+      <p><em>Missing fields:</em> ${(record.missingFields || []).join(", ") || "none"}</p>
+      <pre>${JSON.stringify(record, null, 2)}</pre>
+    `;
+    visitHistoryEl.appendChild(item);
+  });
 }
 
 async function sendTextForAnalysis(text, source) {

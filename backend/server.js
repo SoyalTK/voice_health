@@ -65,6 +65,15 @@ async function initializeDatabase() {
       fallback INTEGER
     );
   `);
+
+  const tableInfo = await db.all("PRAGMA table_info(records)");
+  const columns = tableInfo.map((column) => column.name);
+  if (!columns.includes("prescription")) {
+    await db.exec("ALTER TABLE records ADD COLUMN prescription TEXT;");
+  }
+  if (!columns.includes("missingFields")) {
+    await db.exec("ALTER TABLE records ADD COLUMN missingFields TEXT;");
+  }
 }
 
 function generatePatientId() {
