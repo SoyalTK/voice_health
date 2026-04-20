@@ -3,8 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs/promises";
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
+import mysql from "mysql2/promise";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 
@@ -12,8 +11,6 @@ dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND_DIR = path.resolve(__dirname, "../frontend");
-const DB_DIR = path.resolve(__dirname, "data");
-const DB_PATH = path.join(DB_DIR, "patient_records.db");
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.API_KEY;
@@ -34,45 +31,68 @@ const MODEL_METHOD = AI_PROVIDER === "google"
     : "generateContent"
   : "complete";
 
+// MySQL Database Configuration
+const DB_HOST = process.env.DB_HOST || "localhost";
+const DB_USER = process.env.DB_USER || "root";
+const DB_PASSWORD = process.env.DB_PASSWORD || "";
+const DB_NAME = process.env.DB_NAME || "voice_health_db";
+const DB_PORT = Number(process.env.DB_PORT || 3306);
+
 let db;
 
 async function initializeDatabase() {
-  await fs.mkdir(DB_DIR, { recursive: true });
-  db = await open({ filename: DB_PATH, driver: sqlite3.Database });
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS records (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      patient_id TEXT NOT NULL,
-      timestamp INTEGER NOT NULL,
-      source TEXT,
-      transcript TEXT,
-      language TEXT,
-      text TEXT,
-      symptoms TEXT,
-      duration TEXT,
-      bp TEXT,
-      temperature TEXT,
-      medicines TEXT,
-      severity TEXT,
-      diagnosis TEXT,
-      prescription TEXT,
-      missingFields TEXT,
-      notes TEXT,
-      apiProvider TEXT,
-      model TEXT,
-      apiBaseUrl TEXT,
-      apiError TEXT,
-      fallback INTEGER
-    );
-  `);
+  try {
+    db = await mysql.createConnection({
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASSWORD,
+      database: DB_NAME,
+      port: DB_PORT,
+    });
+    console.log("Connected to MySQL database.");
 
-  const tableInfo = await db.all("PRAGMA table_info(records)");
-  const columns = tableInfo.map((column) => column.name);
-  if (!columns.includes("prescription")) {
-    await db.exec("ALTER TABLE records ADD COLUMN prescription TEXT;");
-  }
-  if (!columns.includes("missingFields")) {
-    await db.exec("ALTER TABLE records ADD COLUMN missingFields TEXT;");
+    // Create table if it doesn't exist
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id VARCHAR(255) NOT NULL,
+        timestamp BIGINT NOT NULL,
+        source VARCHAR(255),
+        transcript TEXT,
+        language VARCHAR(10),
+        text TEXT,
+        symptoms JSON,
+        duration VARCHAR(255),
+        bp VARCHAR(255),
+        temperature VARCHAR(255),
+        medicines JSON,
+        severity VARCHAR(255),
+        diagnosis TEXT,
+        prescription TEXT,
+        missingFields JSON,
+        notes TEXT,
+        apiProvider VARCHAR(255),
+        model VARCHAR(255),
+        apiBaseUrl VARCHAR(255),
+        apiError TEXT,
+        fallback TINYINT(1)
+      )
+    `);
+
+    // Check if prescription and missingFields columns exist, add if not
+    const [columns] = await db.execute("SHOW COLUMNS FROM records");
+    const columnNames = columns.map(col => col.Field);
+    if (!columnNames.includes("prescription")) {
+      await db.execute("ALTER TABLE records ADD COLUMN prescription TEXT");
+    }
+    if (!columnNames.includes("missingFields")) {
+      await db.execute("ALTER TABLE records ADD COLUMN missingFields JSON");
+    }
+
+    console.log("Database initialized successfully.");
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
+    throw error;
   }
 }
 
@@ -134,7 +154,7 @@ app.get("/health", (req, res) => {
 
 app.get("/records", async (req, res) => {
   try {
-    const rows = await db.all(`SELECT * FROM records ORDER BY timestamp DESC LIMIT 50`);
+    const [rows] = await db.execute(`SELECT * FROM records ORDER BY timestamp DESC LIMIT 50`);
     res.json(rows.map(mapDbRecord));
   } catch (error) {
     console.error("Failed to read records:", error);
@@ -144,7 +164,7 @@ app.get("/records", async (req, res) => {
 
 app.get("/records/:patientId", async (req, res) => {
   try {
-    const rows = await db.all(`SELECT * FROM records WHERE patient_id = ? ORDER BY timestamp DESC`, req.params.patientId);
+    const [rows] = await db.execute(`SELECT * FROM records WHERE patient_id = ? ORDER BY timestamp DESC`, [req.params.patientId]);
     res.json(rows.map(mapDbRecord));
   } catch (error) {
     console.error("Failed to read patient records:", error);
@@ -290,7 +310,7 @@ Text: "${text.replace(/"/g, '\\"')}"`;
   };
 
   try {
-    await db.run(
+    await db.execute(
       `INSERT INTO records (
         patient_id,
         timestamp,
@@ -306,33 +326,37 @@ Text: "${text.replace(/"/g, '\\"')}"`;
         severity,
         diagnosis,
         notes,
+        prescription,
+        missingFields,
         apiProvider,
         model,
         apiBaseUrl,
         apiError,
         fallback
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      patientId,
-      Date.now(),
-      source,
-      text,
-      language,
-      text,
-      JSON.stringify(finalResult.symptoms || []),
-      finalResult.duration || "",
-      finalResult.bp || "",
-      finalResult.temperature || "",
-      JSON.stringify(finalResult.medicines || []),
-      finalResult.severity || "",
-      finalResult.diagnosis || "",
-      finalResult.notes || "",
-      finalResult.prescription || "",
-      JSON.stringify(finalResult.missingFields || []),
-      AI_PROVIDER,
-      MODEL_NAME,
-      API_BASE_URL,
-      finalResult.apiError || "",
-      finalResult.fallback ? 1 : 0
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        patientId,
+        Date.now(),
+        source,
+        text,
+        language,
+        text,
+        JSON.stringify(finalResult.symptoms || []),
+        finalResult.duration || "",
+        finalResult.bp || "",
+        finalResult.temperature || "",
+        JSON.stringify(finalResult.medicines || []),
+        finalResult.severity || "",
+        finalResult.diagnosis || "",
+        finalResult.notes || "",
+        finalResult.prescription || "",
+        JSON.stringify(finalResult.missingFields || []),
+        AI_PROVIDER,
+        MODEL_NAME,
+        API_BASE_URL,
+        finalResult.apiError || "",
+        finalResult.fallback ? 1 : 0
+      ]
     );
   } catch (error) {
     console.error("Failed to save record:", error);
