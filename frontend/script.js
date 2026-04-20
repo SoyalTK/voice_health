@@ -86,15 +86,21 @@ async function loadPatientHistory() {
   const patientId = patientIdInput?.value?.trim();
   if (!patientId) {
     setStatus("Enter a Patient ID first to recall visits.", true);
+    visitStatusEl.textContent = "No Patient ID provided.";
+    visitStatusEl.className = "status error";
     return;
   }
 
   visitHistoryEl.innerHTML = "";
   visitStatusEl.textContent = "Loading patient visit history...";
   visitStatusEl.className = "status";
+  console.log("Fetching history for Patient ID:", patientId);
 
   try {
-    const response = await fetch(`${BACKEND_URL}/records/${encodeURIComponent(patientId)}`);
+    const url = `${BACKEND_URL}/records/${encodeURIComponent(patientId)}`;
+    console.log("API URL:", url);
+    const response = await fetch(url);
+    console.log("Response status:", response.status);
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.error || "Failed to fetch patient history.");
@@ -103,12 +109,15 @@ async function loadPatientHistory() {
     if (!data.length) {
       visitHistoryEl.innerHTML = "<li class='empty'>No visits found for this patient ID.</li>";
       visitStatusEl.textContent = "No visits found.";
+      visitStatusEl.className = "status";
       return;
     }
 
     renderVisitHistory(data);
     visitStatusEl.textContent = `${data.length} visit(s) found for ${patientId}.`;
+    visitStatusEl.className = "status success";
   } catch (error) {
+    console.error("Error loading patient history:", error);
     visitStatusEl.textContent = `Failed to load patient history: ${error.message}`;
     visitStatusEl.className = "status error";
     visitHistoryEl.innerHTML = "";

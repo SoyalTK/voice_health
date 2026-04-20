@@ -152,6 +152,19 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", version: "1.0.0", uptime: process.uptime() });
 });
 
+app.get("/debug/records-count", async (req, res) => {
+  try {
+    const [result] = await db.execute("SELECT COUNT(*) as count FROM records");
+    const [patientIds] = await db.execute("SELECT DISTINCT patient_id FROM records LIMIT 10");
+    res.json({
+      totalRecords: result[0]?.count || 0,
+      samplePatientIds: patientIds.map(p => p.patient_id),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/records", async (req, res) => {
   try {
     const [rows] = await db.execute(`SELECT * FROM records ORDER BY timestamp DESC LIMIT 50`);
