@@ -42,4 +42,3 @@ A lightweight **voice and text-based medical note extractor** that converts unst
 
 ---
 
-## 📂 Project Structure
