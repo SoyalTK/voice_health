@@ -1,63 +1,45 @@
-# Voice Healthcare Assistant
+# 🎙️ Voice Healthcare Assistant
 
-A lightweight voice and text medical note extractor using browser speech recognition and AI models (Groq or Google Gemini).
+A lightweight **voice and text-based medical note extractor** that converts unstructured clinical input into structured medical data using browser speech recognition and AI models (Groq or Google Gemini).
 
-## Setup
+---
 
-1. **Install MySQL**: Ensure MySQL is installed and running on your system. You can download it from [mysql.com](https://dev.mysql.com/downloads/mysql/) or use a package manager like Homebrew (macOS), apt (Ubuntu), or Chocolatey (Windows).
+## 🚀 Features
 
-2. **Create Database**: Create a MySQL database named `voice_health_db` (or update the `DB_NAME` in `.env`):
-   ```sql
-   CREATE DATABASE voice_health_db;
-   ```
+- 🎤 **Voice Input (Multilingual)**  
+  Supports English, Hindi, and Marathi.
 
-3. **Open a terminal in `backend/`**
-4. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-5. **Create a `.env` file in `backend/` using `backend/.env.example`**:
-   - Copy `.env.example` to `.env`
-   - Add your AI API key (Groq or Google)
-   - Update MySQL credentials if needed:
-     ```text
-     DB_HOST=localhost
-     DB_USER=root
-     DB_PASSWORD=your_mysql_password
-     DB_NAME=voice_health_db
-     DB_PORT=3306
-     ```
-6. **Start the server**:
-   ```bash
-   npm start
-   ```
+- 🧠 **AI-Powered Extraction**  
+  Extracts:
+  - Symptoms  
+  - Diagnosis  
+  - Prescription  
+  - Blood Pressure (BP)  
+  - Temperature  
+  - Notes  
 
-## Usage
+- 🧾 **Manual Text Input**  
+  Analyze typed clinical notes instantly.
 
-- Open `http://localhost:3000` in a browser.
-- Use the **Start Speaking** button to capture voice notes in English, Hindi, or Marathi.
-- Or paste notes into the manual text area and click **Analyze Manual Text**.
-- The extracted medical fields (symptoms, diagnosis, prescription, etc.) are shown instantly and saved to the MySQL database.
-- View patient history by entering a Patient ID.
+- 👤 **Patient Management**
+  - Unique Patient IDs  
+  - History tracking  
 
-## Features
+- 🗄️ **Database Storage**
+  - MySQL for persistent storage  
 
-- **Multilingual Support**: English, Hindi, Marathi speech recognition.
-- **AI-Powered Extraction**: Extracts symptoms, diagnosis, medicines, BP, temperature, etc.
-- **Patient Management**: Unique patient IDs with history tracking.
-- **Database Storage**: MySQL for persistent data storage.
-- **Fallback Parsing**: Local extraction if AI fails.
+- ⚙️ **Fallback Parsing**
+  - Local extraction if AI fails  
 
-## Notes
+---
 
-- Use Chrome or Edge for the best speech recognition support.
-- If speech recognition is unavailable, use manual text input.
-- The backend serves the frontend directly, so you do not need to open `index.html` as a file.
-- Ensure MySQL is running before starting the server.
+## 🏗️ Tech Stack
 
-## Project Structure
+- Frontend: HTML, CSS, JavaScript  
+- Backend: Node.js, Express  
+- Database: MySQL  
+- AI: Groq API / Google Gemini  
 
-- `backend/server.js` — Express server, MySQL database, AI processing.
-- `frontend/index.html` — UI with voice, manual text input, patient history.
-- `frontend/script.js` — Client logic for recording, analysis, and history display.
-- `frontend/style.css` — Responsive styling.
+---
+
+## 📂 Project Structure
